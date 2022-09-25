@@ -37,3 +37,5 @@ app.get("/metadata", (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`server is listening at port ${port}`);
 });
+
+export default app;
