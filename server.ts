@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { BadgeResponse } from "@steak-enjoyers/badges.js/types/codegen/Hub.types";
+import { BadgeResponse, Trait } from "@steak-enjoyers/badges.js/types/codegen/Hub.types";
 
 const app: Express = express();
 const port = 3000;
@@ -16,6 +16,13 @@ app.get("/metadata", (req: Request, res: Response) => {
     });
   }
 
+  const serial = req.query["serial"];
+  if (!serial) {
+    res.status(400).send({
+      message: "serial is not specified",
+    });
+  }
+
   CosmWasmClient.connect(rpcEndpoint)
     .then((cwClient) => {
       return cwClient.queryContractSmart(hubAddr, {
@@ -25,7 +32,25 @@ app.get("/metadata", (req: Request, res: Response) => {
       });
     })
     .then((badgeRes: BadgeResponse) => {
-      res.send(badgeRes.metadata);
+      const metadata = badgeRes.metadata;
+      const prepend: Trait[] = [
+        {
+          trait_type: "id",
+          value: String(id!),
+        },
+        {
+          trait_type: "serial",
+          value: String(serial!),
+        },
+      ];
+
+      if (metadata.attributes) {
+        metadata.attributes = [...prepend, ...metadata.attributes];
+      } else {
+        metadata.attributes = prepend;
+      }
+
+      res.send(metadata);
     })
     .catch((_err) => {
       res.status(400).send({
